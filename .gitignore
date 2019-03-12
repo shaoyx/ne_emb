@@ -1,0 +1,62 @@
+### Origin
+.classpath
+.project
+.idea
+
+### Eclipse
+*.pydevproject
+.metadata
+.gradle
+logs/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+*.versionsBackup
+local.properties
+release.properties
+.loadpath
+*.launch
+
+#IDEA
+*.iml
+#.settings
+
+# CDT-specific
+.cproject
+
+# PDT-specific
+.buildpath
+
+# SBT-specific
+target
+*.sbtserver*
+
+### Java
+*.class
+dependency-reduced-pom.xml
+
+metastore_db/
+publish/
+*.log
+*.parquet
+
+# python 
+*.pyc
+__pycache__/
+
+# bak file
+*.*_bak
+*.*-bak
+
+# model file
+litemind/apis/models/ 
+models/
+
+#python  cache file
+.cache/
+
+# temp file 
+cookie.txt
+.DS_Store
