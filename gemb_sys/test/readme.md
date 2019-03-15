@@ -1,5 +1,7 @@
 # vcsample使用说明
 
+running on python3
+
 ## 命令行参数说明
 
 ### 输入输出相关

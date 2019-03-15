@@ -1,18 +1,15 @@
 from __future__ import print_function
-import numpy as np
-import random
 from sklearn.linear_model import LogisticRegression
-from .graph import *
-from .classify import Classifier, read_node_label
+from train.graph import *
 import time
 
 import pickle
-from sklearn import metrics, model_selection, pipeline
+from sklearn import metrics, pipeline
 from sklearn.preprocessing import StandardScaler
 import os
 # import tensorflow as tf
 
-from .getmodel import getmodels
+from train.getmodel import getmodels
 
 edge_functions = {
     "hadamard": lambda a, b: a * b,

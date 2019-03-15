@@ -1,9 +1,6 @@
 from __future__ import print_function
-import time
-import numpy as np
-import random
 import math
-from .graph import *
+from graph import *
 
 class deepwalk(object):
     # fac*node_size is the size of v_sampling table (for each epoch)

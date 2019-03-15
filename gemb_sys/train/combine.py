@@ -1,6 +1,5 @@
 from __future__ import print_function
-from . import app
-from . import deepwalk
+import deepwalk, app
 import numpy as np
 
 class combine(object):
@@ -10,9 +9,9 @@ class combine(object):
         self.ratio = args.combine
         self.batch_size = args.batch_size
         self.model1 = deepwalk.deepwalk(graph=g, fac=int(args.epoch_fac * self.ratio),
-                    window=args.window_size, degree_bound=args.degree_bound, degree_power=args.degree_power)
+                                        window=args.window_size, degree_bound=args.degree_bound, degree_power=args.degree_power)
         self.model2 = app.APP(graph=g, jump_factor=args.app_jump_factor,
-                        sample=int(args.epoch_fac * (1 - self.ratio)), step=args.app_step)
+                              sample=int(args.epoch_fac * (1 - self.ratio)), step=args.app_step)
 
     def sample_v(self, batch_size):
         v1s = self.model1.sample_v(int(self.batch_size * self.ratio))

@@ -1,33 +1,36 @@
 from __future__ import print_function
 import random
-import math
-import numpy as np
 import tensorflow as tf
-from sklearn.linear_model import LogisticRegression
-from .classify import Classifier, read_node_label
 
 class vctrainer(object):
-    def __init__(self, graph, model_v, model_c, rep_size=128, epoch = 10, batch_size=1000, learning_rate=0.001,
-                negative_ratio=5):
-        self.cur_epoch = 0
+    def __init__(self,
+                 graph,
+                 vsampler, csampler, emb_model,
+                 rep_size=128, epoch=10, batch_size=1000, learning_rate=0.001, negative_ratio=5):
         self.g = graph
-        self.model_v = model_v
-        self.model_c = model_c
+        self.model_v = vsampler
+        self.model_c = csampler
+        self.emb_model = emb_model #sym, asym
         self.node_size = graph.G.number_of_nodes()
         self.rep_size = rep_size
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.negative_ratio = negative_ratio
+
         self.sess = tf.Session()
         cur_seed = random.getrandbits(32)
         initializer = tf.contrib.layers.xavier_initializer(
             uniform=False, seed=cur_seed)
+
         with tf.variable_scope("model", reuse=None, initializer=initializer):
-            self.build_model()
+            self.build_model(self.emb_model)
+
         self.sess.run(tf.global_variables_initializer())
         print("Start training.")
+        self.cur_epoch = 0
         for i in range(epoch):
             self.train_one_epoch()
+            self.cur_epoch += 1
         self.get_embeddings()
 
     def get_embeddings(self):
@@ -39,27 +42,31 @@ class vctrainer(object):
             vectors[look_back[i]] = embedding
         self.vectors = vectors
 
-    def build_model(self):
+    def build_model(self, emb_model):
         self.h = tf.placeholder(tf.int32, [None])
         self.t = tf.placeholder(tf.int32, [None])
         self.sign = tf.placeholder(tf.float32, [None])
 
         cur_seed = random.getrandbits(32)
-        self.embeddings = tf.get_variable(name="embeddings", shape=[
+        if emb_model == 'asym':
+            print("using asym loss!")
+            self.embeddings = tf.get_variable(name="embeddings", shape=[
                                           self.node_size, self.rep_size], initializer=tf.contrib.layers.xavier_initializer(uniform=False, seed=cur_seed))
-        self.context_embeddings = tf.get_variable(name="context_embeddings", shape=[
+            self.context_embeddings = tf.get_variable(name="context_embeddings", shape=[
                                                   self.node_size, self.rep_size], initializer=tf.contrib.layers.xavier_initializer(uniform=False, seed=cur_seed))
-        # self.h_e = tf.nn.l2_normalize(tf.nn.embedding_lookup(self.embeddings, self.h), 1)
-        # self.t_e = tf.nn.l2_normalize(tf.nn.embedding_lookup(self.embeddings, self.t), 1)
-        # self.t_e_context = tf.nn.l2_normalize(tf.nn.embedding_lookup(self.context_embeddings, self.t), 1)
-        self.h_e = tf.nn.embedding_lookup(self.embeddings, self.h)
-        # self.t_e = tf.nn.embedding_lookup(self.embeddings, self.t)
-        self.t_e_context = tf.nn.embedding_lookup(
-            self.context_embeddings, self.t)
-        self.loss = -tf.reduce_mean(tf.log(tf.clip_by_value(tf.sigmoid(
-            self.sign*tf.reduce_sum(tf.multiply(self.h_e, self.t_e_context), axis=1)),1e-8,1.0)))
-        # self.loss = -tf.reduce_mean(tf.log_sigmoid(
-        #     self.sign*tf.reduce_sum(tf.multiply(self.h_e, self.t_e_context), axis=1)))
+            self.h_e = tf.nn.embedding_lookup(self.embeddings, self.h)
+            self.t_e = tf.nn.embedding_lookup(self.context_embeddings, self.t) #context emb, second order loss
+        else:
+            print("using sym loss!")
+            self.embeddings = tf.get_variable(name="embeddings", shape=[
+                self.node_size, self.rep_size], initializer=tf.contrib.layers.xavier_initializer(uniform=False, seed=cur_seed))
+            self.h_e = tf.nn.embedding_lookup(self.embeddings, self.h)
+            self.t_e = tf.nn.embedding_lookup(self.embeddings, self.t) #word_emb, first order loss
+
+        # self.loss = -tf.reduce_mean(tf.log(tf.clip_by_value(tf.sigmoid(
+        #     self.sign*tf.reduce_sum(tf.multiply(self.h_e, self.t_e), axis=1)),1e-8,1.0))) # why use clip?
+        self.loss = -tf.reduce_mean(tf.log_sigmoid(
+            self.sign*tf.reduce_sum(tf.multiply(self.h_e, self.t_e), axis=1)))
         optimizer = tf.train.AdamOptimizer(self.learning_rate)
         self.train_op = optimizer.minimize(self.loss)
 
@@ -73,17 +80,17 @@ class vctrainer(object):
             _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
                                 self.h: h, self.t: t, self.sign: sign})
             sum_loss += cur_loss
-            batch_id += 1
+            batch_id += 1 #positive batch
             for i in range(self.negative_ratio):
                 t = self.neg_batch(h)
                 sign = [-1.]
                 _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
                                 self.h: h, self.t: t, self.sign: sign})
                 sum_loss += cur_loss
+                # print('\tBatch {}: loss:{!s}/{!s}'.format(batch_id, cur_loss, sum_loss))
                 batch_id += 1
 
-        print('epoch:{} sum of loss:{!s}'.format(self.cur_epoch, sum_loss))
-        self.cur_epoch += 1
+        print('epoch {}: sum of loss:{!s}'.format(self.cur_epoch, sum_loss / batch_id))
 
     def neg_batch(self, h):
         t = []

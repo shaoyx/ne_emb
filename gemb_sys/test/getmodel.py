@@ -2,10 +2,8 @@ from __future__ import print_function
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-from . import vctrainer
-from . import app
-from . import deepwalk
-from . import combine
+# from train import vctrainer, deepwalk, app, combine
+
 
 class emptymodel(object):
     def __init__(self, vectors):
@@ -52,6 +50,8 @@ def parse_args():
                         help='The vertex sampling model')
     parser.add_argument('--model-c',
                         help='The context sampling model')
+    parser.add_argument('--emb_model',
+                        help='The embedding learning model')
 
     # APP
     parser.add_argument('--app-jump-factor', default=0.15, type=float,
@@ -136,34 +136,39 @@ def parse_args():
 
     return args
 
-def getmodel(model, g, args):
-    if model == 'deepwalk':
-        return deepwalk.deepwalk(graph=g, fac=args.epoch_fac, window=args.window_size,
-                                degree_bound=args.degree_bound, degree_power=args.degree_power)
-    if model == 'app':
-        return app.APP(graph=g, jump_factor=args.app_jump_factor, sample=args.epoch_fac, step=args.app_step)
-
-    if model == 'deepwalk,app':
-        return combine.combine(g, args)
-
-    model_list = ['app', 'deepwalk', 'deepwalk,app']
-    print ("The sampling method does not exist!")
-    print ("Please choose from the following:")
-    for m in model_list:
-        print(m)
-    exit()
-
-def getmodels(g, args):
-
-    model_v = getmodel(args.model_v, g, args)
-    if not args.model_c:
-        model_c = model_v
-    elif args.model_c == args.model_v:
-        model_c = model_v
-    else:
-        model_c = getmodel(args.model_c, g, args)
-
-    trainer = vctrainer.vctrainer(g, model_v, model_c, rep_size=args.representation_size,
-                                        epoch=args.epochs, batch_size=args.batch_size,
-                                        learning_rate=args.lr, negative_ratio=args.negative_ratio)
-    return trainer
+# def getmodel(model, g, args):
+#     if model == 'deepwalk':
+#         return deepwalk.deepwalk(graph=g, fac=args.epoch_fac, window=args.window_size,
+#                                  degree_bound=args.degree_bound, degree_power=args.degree_power)
+#     if model == 'app':
+#         return app.APP(graph=g, jump_factor=args.app_jump_factor, sample=args.epoch_fac, step=args.app_step)
+#
+#     if model == 'deepwalk,app':
+#         return combine.combine(g, args)
+#
+#     model_list = ['app', 'deepwalk', 'deepwalk,app']
+#     print ("The sampling method does not exist!")
+#     print ("Please choose from the following:")
+#     for m in model_list:
+#         print(m)
+#     exit()
+#
+# def getmodels(g, args):
+#
+#     model_v = getmodel(args.model_v, g, args)
+#     if not args.model_c:
+#         model_c = model_v
+#     elif args.model_c == args.model_v:
+#         model_c = model_v
+#     else:
+#         model_c = getmodel(args.model_c, g, args)
+#
+#     if not args.emb_model:
+#         arg_emb_model = "asym"
+#     else:
+#         arg_emb_model = args.emb_model
+#
+#     trainer = vctrainer.vctrainer(g, model_v, model_c, emb_model=arg_emb_model, rep_size=args.representation_size,
+#                                   epoch=args.epochs, batch_size=args.batch_size,
+#                                   learning_rate=args.lr, negative_ratio=args.negative_ratio)
+#     return trainer
