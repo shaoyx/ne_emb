@@ -49,8 +49,8 @@ class rw2vc(vctrainer):
         tot= len(walks)
         for walk in walks:
            walk_count=walk_count+1
-           if walk_count % 10000 == 0:
-               print("progress: {}/{}".format(walk_count, tot))
+           # if walk_count % 10000 == 0:
+               # print("progress: {}/{}".format(walk_count, tot))
            for i in range(len(walk)):
                for j in range(i-self.window, i+self.window + 1):
                    if j > 0 and j != i and j < len(walk):

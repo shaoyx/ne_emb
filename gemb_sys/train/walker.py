@@ -1,8 +1,10 @@
 from __future__ import print_function
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import random
 import numpy as np
 import multiprocessing
 import math
+from graph import *
 
 def deepwalk_walk_wrapper(class_instance, walk_length, start_node):
     class_instance.deepwalk_walk(walk_length, start_node)
@@ -132,7 +134,7 @@ class MHWalker:
         return walks
 
 class BasicWalker:
-    def __init__(self, G, workers):
+    def __init__(self, G):
         self.G = G.G
         self.node_size = G.node_size
         self.look_up_dict = G.look_up_dict
@@ -328,3 +330,51 @@ def alias_draw(J, q):
         return kk
     else:
         return J[kk]
+
+
+def parse_args():
+
+    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter,
+                            conflict_handler='resolve')
+    # input files
+    parser.add_argument('--input', required=True,
+                        help='Input graph file')
+    parser.add_argument('--output', required=True,
+                        help='Output random walk file')
+    parser.add_argument('--graph-format', default='adjlist', choices=['adjlist', 'edgelist'],
+                        help='Input graph format')
+    parser.add_argument('--weighted', action='store_true',
+                        help='Treat graph as weighted')
+    parser.add_argument('--directed', action='store_true',
+                        help='Treat graph as directed.')
+    parser.add_argument('--walk-type', default="deepwalk",
+                        help='The method of generating walks')
+
+    parser.add_argument('--number-walks', default=10, type=int,
+                        help='Number of random walks to start at each node')
+    parser.add_argument('--walk-length', default=40, type=int,
+                        help='Length of the random walk started at each node')
+
+    args = parser.parse_args()
+
+    return args
+
+if __name__ == "__main__":
+    random.seed()
+    np.random.seed()
+    args = parse_args()
+
+    print("Reading Graph ...")
+    g = Graph()
+    if args.graph_format == 'adjlist':
+        g.read_adjlist(filename=args.input)
+    elif args.graph_format == 'edgelist':
+        g.read_edgelist(filename=args.input, weighted=args.weighted,
+                        directed=args.directed)
+
+    if args.walk_type == "deepwalk":
+        walks = BasicWalker(g).simulate_walks(num_walks=args.number_walks, walk_length=args.walk_length)
+        with open(args.output, 'w') as fout:
+            for walk in walks:
+                fout.write(u"{}\n".format(u" ".join(v for v in walk)))
+

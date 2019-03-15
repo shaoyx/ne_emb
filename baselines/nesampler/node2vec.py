@@ -1,6 +1,5 @@
 from __future__ import print_function
-import time
-from . import walker
+import walker
 from .trainer import trainer
 
 def myparser(sentences, window):

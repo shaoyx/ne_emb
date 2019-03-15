@@ -1,7 +1,6 @@
 from __future__ import print_function
-import time
 from gensim.models import Word2Vec
-from . import walker
+import walker
 
 
 class Node2vec(object):
