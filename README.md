@@ -1,4 +1,7 @@
-# src
+# README
+using python 3
+
+pip install -r requirements.txt
 
 ### 更新2.24
 输出特定节点embedding相似度的分布图，在文件夹mypic5下，对应代码是emd_sim4.py
