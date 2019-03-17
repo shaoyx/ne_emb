@@ -7,7 +7,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from sklearn.linear_model import LogisticRegression
 from classify import Classifier, read_node_label\
 
-# import link
+from link import *
 from reconstr import reconstr
 from clustering import clustering, modularity
 
@@ -17,20 +17,20 @@ def parse_args():
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter,
                             conflict_handler='resolve')
     # input files
-    # parser.add_argument('--input', required=True,
-    #                     help='Input graph file')
+    parser.add_argument('--input', required=True,
+                        help='Input graph file')
     # parser.add_argument('--output',
     #                     help='Output representation file')
     parser.add_argument('--label-file', default='',
                         help='The file of node label')
     # parser.add_argument('--feature-file', default='',
     #                    help='The file of node features')
-    # parser.add_argument('--graph-format', default='adjlist', choices=['adjlist', 'edgelist'],
-    #                     help='Input graph format')
-    # parser.add_argument('--weighted', action='store_true',
-    #                     help='Treat graph as weighted')
-    # parser.add_argument('--directed', action='store_true',
-    #                     help='Treat graph as directed.')
+    parser.add_argument('--graph-format', default='adjlist', choices=['adjlist', 'edgelist'],
+                        help='Input graph format')
+    parser.add_argument('--weighted', action='store_true',
+                        help='Treat graph as weighted')
+    parser.add_argument('--directed', action='store_true',
+                        help='Treat graph as directed.')
     parser.add_argument('--embedding-file', required=True,
                         help='Pretrained embedding file')
 
@@ -93,20 +93,19 @@ def main(args):
 
     if args.modularity:
         print("Modularity")
-        modularity(g, node_embeddings, args.min_k, args.max_k)
+        modularity(args, node_embeddings, args.min_k, args.max_k)
 
     if args.reconstruction:
         print("Graph reconstruction")
-        reconstr(g, node_embeddings, args.k_nbrs)
+        reconstr(args, node_embeddings, args.k_nbrs)
 
     if args.clustering:
         print("Clustering")
         clustering(node_embeddings, labels, args.exp_times)
 
-    # if args.link_prediction:
-    #     print("Link prediction")
-    #     link.test_edge_functions(args)
-    #     return
+    if args.link_prediction:
+        print("Link prediction")
+        link_prediction(args.input, node_embeddings)
 
     if args.classification:
         X = list(labels.keys())

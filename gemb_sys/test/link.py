@@ -1,15 +1,11 @@
 from __future__ import print_function
 from sklearn.linear_model import LogisticRegression
-from train.graph import *
 import time
 
 import pickle
 from sklearn import metrics, pipeline
 from sklearn.preprocessing import StandardScaler
-import os
-# import tensorflow as tf
-
-from train.getmodel import getmodels
+import numpy as np
 
 edge_functions = {
     "hadamard": lambda a, b: a * b,
@@ -18,49 +14,6 @@ edge_functions = {
     "l2": lambda a, b: np.abs(a - b) ** 2,
     "concat": lambda a, b: np.concatenate([a, b])
 }
-
-
-def create_train_test_graphs(args):
-    """
-    Create and cache train & test graphs.
-    Will load from cache if exists unless --regen option is given.
-
-    :param args:
-    :return:
-        Gtrain, Gtest: Train & test graphs
-    """
-    # Remove half the edges, and the same number of "negative" edges
-
-    # Create random training and test graphs with different random edge selections
-
-    Gtrain = None
-    cached_fn = args.cached_fn
-    if cached_fn != '':
-        if os.path.exists(cached_fn):
-            print("Loading link prediction graphs from %s" % cached_fn)
-            with open(cached_fn, 'rb') as f:
-                cache_data = pickle.load(f)
-            Gtrain = cache_data['g_train']
-    if Gtrain is None:
-        print("Regenerating link prediction graphs")
-        # Train graph embeddings on graph with random links
-        Gtrain = Graph(prop_pos=args.prop_pos,
-                          prop_neg=args.prop_neg,
-                          prop_neg_tot=args.prop_neg_tot)
-        if args.graph_format == 'adjlist':
-            Gtrain.read_adjlist(filename=args.input)
-        elif args.graph_format == 'edgelist':
-            Gtrain.read_edgelist(filename=args.input, weighted=args.weighted,
-                        directed=args.directed)
-        Gtrain.generate_pos_neg_links()
-
-        # Cache generated  graph
-        if cached_fn != '':
-            cache_data = {'g_train': Gtrain}
-            with open(cached_fn, 'wb') as f:
-                pickle.dump(cache_data, f)
-
-    return Gtrain
 
 def edges_to_features(vectors, edge_list, edge_function, dimensions):
     n_tot = len(edge_list)
@@ -109,11 +62,11 @@ def full_batch(vectors, edges, labels):
         ls += [labels[idx[i]]]
     return v1s, v2s, ls
 '''
-def test_edge_functions(args):
-    dims = args.representation_size
-    t1 = time.time()
+def link_prediction(dataset, embeddings):
     print("Reading...")
-    Gtrain = create_train_test_graphs(args)
+    with open(dataset, 'rb') as f:
+        cache_data = pickle.load(f)
+    Gtrain = cache_data['g_train']
 
     # Train and test graphs, with different edges
     edges_test, labels_test = Gtrain.get_test_edges()
@@ -125,11 +78,10 @@ def test_edge_functions(args):
     aucs = {name: [] for name in edge_functions}
 
     # Learn embeddings with current parameter values
-    model = getmodels(Gtrain, args)
-
-    t2 = time.time()
-    print("time: {}".format(t2-t1))
-    vectors = model.vectors
+    vectors = embeddings
+    for x in vectors:
+        dims = len(x)
+        break;
     '''
     # tensorflow for (v1)^t W v2
     cur_seed = random.getrandbits(32)

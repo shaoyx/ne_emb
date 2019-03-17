@@ -64,6 +64,7 @@ class Classifier(object):
 
         self.train(X_train, Y_train, Y)
         numpy.random.set_state(state)
+        print("###########")
         return self.evaluate(X_test, Y_test)
 
 

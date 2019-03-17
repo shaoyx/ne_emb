@@ -3,7 +3,17 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import normalized_mutual_info_score
 
-def modularity(g, vectors, min_k, max_k):
+from graph import *
+
+def modularity(args, vectors, min_k, max_k):
+    print("Reading Graph ...")
+    g = Graph()
+    if args.graph_format == 'adjlist':
+        g.read_adjlist(filename=args.input)
+    elif args.graph_format == 'edgelist':
+        g.read_edgelist(filename=args.input, weighted=args.weighted,
+                        directed=args.directed)
+
     nodes = list(vectors.keys())
     v = list(vectors.values())
     n_nodes = len(nodes)

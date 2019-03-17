@@ -70,22 +70,46 @@ class vctrainer(object):
         optimizer = tf.train.AdamOptimizer(self.learning_rate)
         self.train_op = optimizer.minimize(self.loss)
 
+
     def train_one_epoch(self):
         sum_loss = 0.0
-        vs = self.model_v.sample_v(self.batch_size)
+
         batch_id = 0
-        for h in vs:
-            t = self.model_c.sample_c(h)
+        for batch  in self.model_v.sample_batch(self.batch_size):
+            h1, t1 = batch
             sign = [1.]
             _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
-                                self.h: h, self.t: t, self.sign: sign})
+                                self.h: h1, self.t: t1, self.sign: sign})
             sum_loss += cur_loss
             batch_id += 1 #positive batch
             for i in range(self.negative_ratio):
-                t = self.neg_batch(h)
+                t1 = self.neg_batch(h1)
                 sign = [-1.]
                 _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
-                                self.h: h, self.t: t, self.sign: sign})
+                                self.h: h1, self.t: t1, self.sign: sign})
+                sum_loss += cur_loss
+                # print('\tBatch {}: loss:{!s}/{!s}'.format(batch_id, cur_loss, sum_loss))
+                batch_id += 1
+
+        print('epoch {}: sum of loss:{!s}'.format(self.cur_epoch, sum_loss / batch_id))
+
+    def train_one_epoch1(self):
+        sum_loss = 0.0
+        vs = self.model_v.sample_v(self.batch_size)
+        batch_id = 0
+        for hx in vs:
+            # TODO, return two lists
+            h1, t1 = self.model_c.sample_c(hx)
+            sign = [1.]
+            _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
+                                self.h: h1, self.t: t1, self.sign: sign})
+            sum_loss += cur_loss
+            batch_id += 1 #positive batch
+            for i in range(self.negative_ratio):
+                t1 = self.neg_batch(h1)
+                sign = [-1.]
+                _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
+                                self.h: h1, self.t: t1, self.sign: sign})
                 sum_loss += cur_loss
                 # print('\tBatch {}: loss:{!s}/{!s}'.format(batch_id, cur_loss, sum_loss))
                 batch_id += 1

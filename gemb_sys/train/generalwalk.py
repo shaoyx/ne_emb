@@ -2,9 +2,9 @@ from __future__ import print_function
 import math
 from graph import *
 
-class deepwalk(object):
+class generalwalk(object):
     # fac*node_size is the size of v_sampling table (for each epoch)
-    def __init__(self, graph, fac=50, window=10, degree_bound=0, degree_power=1.0):
+    def __init__(self, graph, fac=50, window=10, degree_bound=0, degree_power=1.0, alpha=0.15):
         self.g = graph
         if graph.directed:
             self.g_r = None
@@ -14,6 +14,7 @@ class deepwalk(object):
         self.window = window
         self.degree_bound = degree_bound
         self.degree_power = degree_power
+        self.alpha = alpha
         self.app = None
         self.it = None
 
@@ -135,21 +136,25 @@ class deepwalk(object):
             except:
                 print(h[i])
                 exit()
-            if degrees[root] == 0:
+            if degrees[root] == 0: #skip the zero degree nodes.
                 t += [look_up[root]]
                 i += 1
                 continue
-            if self.it[root] == 0:
-                iid = root
-                self.it[root] = self.window
-            else:
-                iid = self.pl[root]
-            if degrees[iid] == 0:
-                iid = root
-                self.it[root] = self.window
-            iid = random.choice(neighbors[iid])
-            self.it[root] -= 1
-            self.pl[root] = iid
+            while 1:
+                if self.it[root] == 0: #restrat
+                    iid = root
+                    self.it[root] = self.window
+                else:
+                    iid = self.pl[root] #continue the last node
+                if degrees[iid] == 0: #skip the zero degree nodes
+                    iid = root
+                    self.it[root] = self.window
+                iid = random.choice(neighbors[iid])
+                self.it[root] -= 1
+                self.pl[root] = iid
+                prob = random.random()
+                if prob < self.alpha: #output a node
+                    break
             t += [look_up[iid]]
             i += 1
         return t

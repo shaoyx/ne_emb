@@ -1,6 +1,7 @@
 from __future__ import print_function
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+from graph import *
 '''
 def cos_distance(vector_a, vector_b):
     vector_a = np.mat(vector_a)
@@ -29,7 +30,18 @@ def reconstr(g, vectors, x):
         tot += n_nbrs
     print("Graph reconstruction accuracy: {} ({} / {})".format(corr / tot, corr, tot))
 '''
-def reconstr(g, vectors, k_nbrs):
+
+
+
+def reconstr(args, vectors, k_nbrs):
+    print("Reading Graph ...")
+    g = Graph()
+    if args.graph_format == 'adjlist':
+        g.read_adjlist(filename=args.input)
+    elif args.graph_format == 'edgelist':
+        g.read_edgelist(filename=args.input, weighted=args.weighted,
+                        directed=args.directed)
+
     nodes = list(vectors.keys())
     v = list(vectors.values())
     n_nodes = len(nodes)
@@ -54,4 +66,5 @@ def reconstr(g, vectors, k_nbrs):
             tot += n_nbrs
     print("Graph reconstruction accuracy: {} ({} / {})".format(corr / tot, corr, tot))
     print("{}\n".format(corr/tot))
+
 

@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import vctrainer, deepwalk, app, combine, rw2vc
+import generalwalk
 
 def _getmodel(model, g, args):
     if model == 'deepwalk':
@@ -12,13 +13,17 @@ def _getmodel(model, g, args):
     if model == 'deepwalk,app':
         return combine.combine(g, args)
 
+    if model == 'generalwalk':
+        return generalwalk.generalwalk(g, fac=args.epoch_fac, window=args.window_size,
+                                       degree_bound=args.degree_bound, degree_power=args.degree_power)
+
     if model == 'rw2vc':
         return rw2vc.rw2vc(graph=g, rw_file=args.rw_file,
                            window=args.window_size, emb_model=args.emb_model, rep_size=args.representation_size,
                            epoch=args.epochs, batch_size=args.batch_size,
                            learning_rate=args.lr, negative_ratio=args.negative_ratio)
 
-    model_list = ['app', 'deepwalk', 'deepwalk,app', 'rw2vc']
+    model_list = ['app', 'deepwalk', 'deepwalk,app', 'rw2vc', 'generalwalk']
     print ("The sampling method {} does not exist!", model)
     print ("Please choose from the following:")
     for m in model_list:
