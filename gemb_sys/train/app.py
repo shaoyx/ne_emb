@@ -12,6 +12,30 @@ class APP(object):
         self.neighbors = None
         self.degrees = None
 
+    def sample_batch(self, batch_size):
+        random.seed()
+        try:
+            nodes = self.nodes
+        except:
+            self.nodes = list(self.g.G.nodes())
+            nodes = self.nodes
+        look_up = self.g.look_up_dict
+        random.shuffle(nodes)
+        h = []
+        cnt = 0
+        for root in nodes:
+            for i in range(self.sample):
+                cnt += 1
+                h += [look_up[root]]
+                if cnt >= batch_size:
+                    t = self.sample_c(h)
+                    yield h, t
+                    cnt = 0
+                    h = []
+        if len(h) > 0:
+            t = self.sample_c(h)
+            yield h, t
+
     def sample_v(self, batch_size):
         random.seed()
         try:

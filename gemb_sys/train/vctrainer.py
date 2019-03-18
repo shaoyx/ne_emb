@@ -1,11 +1,12 @@
 from __future__ import print_function
 import random
 import tensorflow as tf
+import time
 
 class vctrainer(object):
     def __init__(self,
                  graph,
-                 vsampler, csampler, emb_model,
+                 vsampler, csampler, emb_model, emb_file,
                  rep_size=128, epoch=10, batch_size=1000, learning_rate=0.001, negative_ratio=5):
         self.g = graph
         self.model_v = vsampler
@@ -16,6 +17,7 @@ class vctrainer(object):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.negative_ratio = negative_ratio
+        self.emb_file = emb_file
 
         self.sess = tf.Session()
         cur_seed = random.getrandbits(32)
@@ -31,6 +33,9 @@ class vctrainer(object):
         for i in range(epoch):
             self.train_one_epoch()
             self.cur_epoch += 1
+            if self.cur_epoch % 5 == 0:
+                self.get_embeddings()
+                self.save_embeddings(self.emb_file+"_"+self.cur_epoch)
         self.get_embeddings()
 
     def get_embeddings(self):
@@ -65,8 +70,10 @@ class vctrainer(object):
 
         # self.loss = -tf.reduce_mean(tf.log(tf.clip_by_value(tf.sigmoid(
         #     self.sign*tf.reduce_sum(tf.multiply(self.h_e, self.t_e), axis=1)),1e-8,1.0))) # why use clip?
-        self.loss = -tf.reduce_mean(tf.log_sigmoid(
-            self.sign*tf.reduce_sum(tf.multiply(self.h_e, self.t_e), axis=1)))
+        # self.loss = -tf.reduce_mean(tf.log_sigmoid(
+        #     self.sign*tf.reduce_sum(tf.multiply(self.h_e, self.t_e), axis=1)))
+        logits = tf.reduce_sum(tf.multiply(self.h_e, self.t_e), axis=1)
+        self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=self.sign))
         optimizer = tf.train.AdamOptimizer(self.learning_rate)
         self.train_op = optimizer.minimize(self.loss)
 
@@ -75,23 +82,35 @@ class vctrainer(object):
         sum_loss = 0.0
 
         batch_id = 0
-        for batch  in self.model_v.sample_batch(self.batch_size):
-            h1, t1 = batch
-            sign = [1.]
+        tot_time = 0.0
+        start = time.time()
+        first = True
+        for batch in self.model_v.sample_batch(self.batch_size, self.negative_ratio):
+            h1, t1, sign = batch
+            # sign = [1.0] #for _ in range(len(h1))]
+            if first:
+                first = False
+                print("real batch size={}".format(len(h1)))
+            tx = time.time()
             _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
                                 self.h: h1, self.t: t1, self.sign: sign})
+            tot_time += time.time() - tx
             sum_loss += cur_loss
             batch_id += 1 #positive batch
-            for i in range(self.negative_ratio):
-                t1 = self.neg_batch(h1)
-                sign = [-1.]
-                _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
-                                self.h: h1, self.t: t1, self.sign: sign})
-                sum_loss += cur_loss
-                # print('\tBatch {}: loss:{!s}/{!s}'.format(batch_id, cur_loss, sum_loss))
-                batch_id += 1
+            # for i in range(self.negative_ratio):
+            #     t1 = self.neg_batch(h1)
+            #     sign = [0.0] # for _ in range(len(h1))]
+            #     tx = time.time()
+            #     _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
+            #                     self.h: h1, self.t: t1, self.sign: sign})
+            #     tot_time += time.time() - tx
+            #     sum_loss += cur_loss
+            #     # print('\tBatch {}: loss:{!s}/{!s}'.format(batch_id, cur_loss, sum_loss))
+            #     batch_id += 1
+        end = time.time()
 
-        print('epoch {}: sum of loss:{!s}'.format(self.cur_epoch, sum_loss / batch_id))
+        print('epoch {}: sum of loss:{!s}; time cost: {!s}/{!s}, per_batch_cost: {!s}'.
+              format(self.cur_epoch, sum_loss / batch_id, tot_time, end-start, tot_time/batch_id))
 
     def train_one_epoch1(self):
         sum_loss = 0.0

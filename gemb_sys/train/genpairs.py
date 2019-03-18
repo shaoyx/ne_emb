@@ -2,7 +2,7 @@ from __future__ import print_function
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from graph import *
 import time
-from getmodel import getmodels
+from getmodel import getmodels, getmodel
 
 def parse_args():
 
@@ -20,29 +20,13 @@ def parse_args():
     parser.add_argument('--directed', action='store_true',
                         help='Treat graph as directed.')
 
-    # embedding training parameters
-    parser.add_argument('--representation-size', default=128, type=int,
-                        help='Number of latent dimensions to learn for each node.')
-    parser.add_argument('--epochs', default=20, type=int,
-                        help='The training epochs')
+
     parser.add_argument('--epoch-fac', default=50, type=int,
                         help='epoch-fac * node num in graph = node num per epoch')
-    parser.add_argument('--batch-size', default=1000, type=int,
-                        help='batch size')
-    parser.add_argument('--lr', default=0.001, type=float,
-                        help='learning rate')
-    parser.add_argument('--negative-ratio', default=5, type=int,
-                        help='the negative ratio of embedding training')
 
     # algorithm parameters
     parser.add_argument('--model-v', required=True,
                         help='The vertex sampling model')
-    parser.add_argument('--model-c',
-                        help='The context sampling model')
-    parser.add_argument('--emb_model',
-                        help='The embedding learning model')
-    parser.add_argument('--rw-file',
-                        help='The file path of random walk')
 
     # APP
     parser.add_argument('--app-jump-factor', default=0.15, type=float,
@@ -57,10 +41,6 @@ def parse_args():
                         help='Bound of degree for sample_v of deepwalk.')
     parser.add_argument('--window-size', default=10, type=int,
                         help='Window size of skipgram model.')
-
-    # fixedpair
-    parser.add_argument('--pair-file',
-                        help='file path of pairs')
 
     # combination
     parser.add_argument('--combine', default=0.5, type=float,
@@ -87,12 +67,8 @@ def main(args):
         g.read_edgelist(filename=args.input, weighted=args.weighted,
                         directed=args.directed)
 
-    t1 = time.time()
-    model = getmodels(g, args)
-    t2 = time.time()
-    print("Train time cost: {}".format(t2-t1))
-    print("Saving embeddings...")
-    model.save_embeddings(args.output)
+    model = getmodel(args.model_v, g, args)
+    model.gendata(args.output)
 
 if __name__ == "__main__":
     random.seed()
