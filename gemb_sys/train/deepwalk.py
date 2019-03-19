@@ -58,10 +58,12 @@ class deepwalk(object):
                 i += 1
         random.shuffle(sampling_table)
         i = 0
-        h = []
-        t = []
-        sign = []
+        # TODO: full batch training
+        # batch_size = table_size
         while i < table_size:
+            h = []
+            t = []
+            sign = []
             j = min(i + batch_size, table_size)
             hx = sampling_table[i:j]
             tx = self.sample_c_asym(hx)

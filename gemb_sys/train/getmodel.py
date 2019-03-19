@@ -27,7 +27,7 @@ def getmodel(model, g, args):
         return fixedpair.fixedpair(g, pair_file=args.pair_file)
 
     if model == 'rw2vc':
-        return rw2vc.rw2vc(graph=g, rw_file=args.rw_file,
+        return rw2vc.rw2vc(graph=g, rw_file=args.rw_file, emb_file=args.output,
                            window=args.window_size, emb_model=args.emb_model, rep_size=args.representation_size,
                            epoch=args.epochs, batch_size=args.batch_size,
                            learning_rate=args.lr, negative_ratio=args.negative_ratio)

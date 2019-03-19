@@ -35,7 +35,7 @@ class vctrainer(object):
             self.cur_epoch += 1
             if self.cur_epoch % 5 == 0:
                 self.get_embeddings()
-                self.save_embeddings(self.emb_file+"_"+self.cur_epoch)
+                self.save_embeddings(self.emb_file+"_"+str(self.cur_epoch))
         self.get_embeddings()
 
     def get_embeddings(self):
@@ -77,63 +77,90 @@ class vctrainer(object):
         optimizer = tf.train.AdamOptimizer(self.learning_rate)
         self.train_op = optimizer.minimize(self.loss)
 
+    """
+       positive and negative batches seperately.
+    """
+    # def train_one_epoch(self):
+    #     sum_loss = 0.0
+    #
+    #     batch_id = 0
+    #     tot_time = 0.0
+    #     start = time.time()
+    #     first = True
+    #     for batch in self.model_v.sample_batch(self.batch_size, self.negative_ratio):
+    #         h1, t1, sign = batch
+    #         # sign = [1.0] #for _ in range(len(h1))]
+    #         if first:
+    #             first = False
+    #             print("real batch size={}".format(len(h1)))
+    #         tx = time.time()
+    #         _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
+    #                             self.h: h1, self.t: t1, self.sign: sign})
+    #         # cur_loss = 0.0
+    #         # print(len(h1))
+    #         tot_time += time.time() - tx
+    #         sum_loss += cur_loss
+    #         batch_id += 1 #positive batch
+    #         # for i in range(self.negative_ratio):
+    #         #     t1 = self.neg_batch(h1)
+    #         #     sign = [0.0] # for _ in range(len(h1))]
+    #         #     tx = time.time()
+    #         #     _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
+    #         #                     self.h: h1, self.t: t1, self.sign: sign})
+    #         #     tot_time += time.time() - tx
+    #         #     sum_loss += cur_loss
+    #         #     # print('\tBatch {}: loss:{!s}/{!s}'.format(batch_id, cur_loss, sum_loss))
+    #         #     batch_id += 1
+    #     end = time.time()
+    #
+    #     print('epoch {}: sum of loss:{!s}; time cost: {!s}/{!s}, per_batch_cost: {!s}'.
+    #           format(self.cur_epoch, sum_loss / batch_id, tot_time, end-start, tot_time/batch_id))
 
+    """
+    mix negative batch and positive batches
+    """
     def train_one_epoch(self):
         sum_loss = 0.0
 
         batch_id = 0
+
         tot_time = 0.0
         start = time.time()
-        first = True
         for batch in self.model_v.sample_batch(self.batch_size, self.negative_ratio):
             h1, t1, sign = batch
-            # sign = [1.0] #for _ in range(len(h1))]
-            if first:
-                first = False
-                print("real batch size={}".format(len(h1)))
             tx = time.time()
             _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
                                 self.h: h1, self.t: t1, self.sign: sign})
             tot_time += time.time() - tx
             sum_loss += cur_loss
-            batch_id += 1 #positive batch
-            # for i in range(self.negative_ratio):
-            #     t1 = self.neg_batch(h1)
-            #     sign = [0.0] # for _ in range(len(h1))]
-            #     tx = time.time()
-            #     _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
-            #                     self.h: h1, self.t: t1, self.sign: sign})
-            #     tot_time += time.time() - tx
-            #     sum_loss += cur_loss
-            #     # print('\tBatch {}: loss:{!s}/{!s}'.format(batch_id, cur_loss, sum_loss))
-            #     batch_id += 1
+            batch_id += 1
         end = time.time()
 
         print('epoch {}: sum of loss:{!s}; time cost: {!s}/{!s}, per_batch_cost: {!s}'.
               format(self.cur_epoch, sum_loss / batch_id, tot_time, end-start, tot_time/batch_id))
 
-    def train_one_epoch1(self):
-        sum_loss = 0.0
-        vs = self.model_v.sample_v(self.batch_size)
-        batch_id = 0
-        for hx in vs:
-            # TODO, return two lists
-            h1, t1 = self.model_c.sample_c(hx)
-            sign = [1.]
-            _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
-                                self.h: h1, self.t: t1, self.sign: sign})
-            sum_loss += cur_loss
-            batch_id += 1 #positive batch
-            for i in range(self.negative_ratio):
-                t1 = self.neg_batch(h1)
-                sign = [-1.]
-                _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
-                                self.h: h1, self.t: t1, self.sign: sign})
-                sum_loss += cur_loss
-                # print('\tBatch {}: loss:{!s}/{!s}'.format(batch_id, cur_loss, sum_loss))
-                batch_id += 1
-
-        print('epoch {}: sum of loss:{!s}'.format(self.cur_epoch, sum_loss / batch_id))
+    # def train_one_epoch1(self):
+    #     sum_loss = 0.0
+    #     vs = self.model_v.sample_v(self.batch_size)
+    #     batch_id = 0
+    #     for hx in vs:
+    #         # TODO, return two lists
+    #         h1, t1 = self.model_c.sample_c(hx)
+    #         sign = [1.]
+    #         _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
+    #                             self.h: h1, self.t: t1, self.sign: sign})
+    #         sum_loss += cur_loss
+    #         batch_id += 1 #positive batch
+    #         for i in range(self.negative_ratio):
+    #             t1 = self.neg_batch(h1)
+    #             sign = [-1.]
+    #             _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
+    #                             self.h: h1, self.t: t1, self.sign: sign})
+    #             sum_loss += cur_loss
+    #             # print('\tBatch {}: loss:{!s}/{!s}'.format(batch_id, cur_loss, sum_loss))
+    #             batch_id += 1
+    #
+    #     print('epoch {}: sum of loss:{!s}'.format(self.cur_epoch, sum_loss / batch_id))
 
     def neg_batch(self, h):
         t = []
