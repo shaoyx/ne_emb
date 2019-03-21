@@ -47,7 +47,9 @@ def parse_args():
     # APP
     parser.add_argument('--app-jump-factor', default=0.15, type=float,
                         help='Jump factor (APP)')
-    parser.add_argument('--app-step', default=80, type=int,
+    parser.add_argument('--app-sample', default=200, type=int,
+                        help='Jump factor (APP)')
+    parser.add_argument('--app-step', default=10, type=int,
                         help='Maximum number of walking steps(APP)')
 
     # deepwalk

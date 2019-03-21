@@ -7,16 +7,16 @@ import fixedpair
 
 def getmodel(model, g, args):
     if model == 'deepwalk':
-        return deepwalk.deepwalk(graph=g, fac=args.epoch_fac, window=args.window_size,
+        return deepwalk.DeepWalk(graph=g, fac=args.epoch_fac, window=args.window_size,
                                  degree_bound=args.degree_bound, degree_power=args.degree_power)
     if model == 'app':
-        return app.APP(graph=g, jump_factor=args.app_jump_factor, sample=args.epoch_fac, step=args.app_step)
+        return app.APP(graph=g, stop_factor=args.app_jump_factor, sample=args.app_sample, step=args.app_step)
 
     if model == 'deepwalk,app':
         return combine.combine(g, args)
 
     if model == 'generalwalk':
-        return generalwalk.generalwalk(g, fac=args.epoch_fac, window=args.window_size,
+        return generalwalk.GeneralWalk(g, fac=args.epoch_fac, window=args.window_size,
                                        degree_bound=args.degree_bound, degree_power=args.degree_power)
 
     if model == 'dumpwalk':

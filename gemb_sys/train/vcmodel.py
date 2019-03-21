@@ -4,23 +4,46 @@ import tensorflow as tf
 import time
 
 
-class vctrainer(object):
-    def __init__(self,
-                 graph,
-                 vsampler, csampler, emb_model, emb_file,
-                 rep_size=128, epoch=10, batch_size=1000, learning_rate=0.001, negative_ratio=5):
-        self.g = graph
-        self.model_v = vsampler
-        self.model_c = csampler
-        self.emb_model = emb_model #sym (first), asym (second)
-        self.node_size = graph.G.number_of_nodes()
-        self.rep_size = rep_size
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.negative_ratio = negative_ratio
-        self.emb_file = emb_file
+class Options(object):
+    """Options used by our word2vec model."""
 
-        self.sess = tf.Session()
+    def __init__(self):
+        # Model options.
+
+        # Embedding dimension.
+        self.emb_dim = 128
+
+        # Training options.
+        # The training text file.
+        self.train_graph = None
+
+        # Number of negative samples per example.
+        self.negative_ratio = 5
+
+        # The initial learning rate.
+        self.learning_rate = 0.001  # TODO: not linear decay!!!
+
+        # Number of epochs to train. After these many epochs, the learning
+        # rate decays linearly to zero and the training stops.
+        self.epochs_to_train = 10
+
+        # Concurrent training steps.
+        self.concurrent_steps = 1
+
+        # Number of examples for one training step.
+        self.batch_size = 1000
+
+        # The embedding model
+        self.emb_model = "asym"  # sym (first) or asym (second)
+
+
+class VCEmbModel(object):
+    def __init__(self, options, session):
+        self.options = options
+        self.sess = session
+
+        self.build_model()
+
         cur_seed = random.getrandbits(32)
         initializer = tf.contrib.layers.xavier_initializer(
             uniform=False, seed=cur_seed)
@@ -81,53 +104,64 @@ class vctrainer(object):
     """
        positive and negative batches seperately.
     """
+    # def train_one_epoch(self):
+    #     sum_loss = 0.0
+    #
+    #     batch_id = 0
+    #     tot_time = 0.0
+    #     start = time.time()
+    #     first = True
+    #     for batch in self.model_v.sample_batch(self.batch_size, self.negative_ratio):
+    #         h1, t1, sign = batch
+    #         # sign = [1.0] #for _ in range(len(h1))]
+    #         if first:
+    #             first = False
+    #             print("real batch size={}".format(len(h1)))
+    #         tx = time.time()
+    #         _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
+    #                             self.h: h1, self.t: t1, self.sign: sign})
+    #         # cur_loss = 0.0
+    #         # print(len(h1))
+    #         tot_time += time.time() - tx
+    #         sum_loss += cur_loss
+    #         batch_id += 1 #positive batch
+    #         # for i in range(self.negative_ratio):
+    #         #     t1 = self.neg_batch(h1)
+    #         #     sign = [0.0] # for _ in range(len(h1))]
+    #         #     tx = time.time()
+    #         #     _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
+    #         #                     self.h: h1, self.t: t1, self.sign: sign})
+    #         #     tot_time += time.time() - tx
+    #         #     sum_loss += cur_loss
+    #         #     # print('\tBatch {}: loss:{!s}/{!s}'.format(batch_id, cur_loss, sum_loss))
+    #         #     batch_id += 1
+    #     end = time.time()
+    #
+    #     print('epoch {}: sum of loss:{!s}; time cost: {!s}/{!s}, per_batch_cost: {!s}'.
+    #           format(self.cur_epoch, sum_loss / batch_id, tot_time, end-start, tot_time/batch_id))
+
+    """
+    mix negative batch and positive batches
+    """
     def train_one_epoch(self):
         sum_loss = 0.0
+
         batch_id = 0
+
         tot_time = 0.0
         start = time.time()
-        for batch in self.model_v.generate_batch(self.batch_size):
-            h1, t1 = batch
+        for batch in self.model_v.sample_batch(self.batch_size, self.negative_ratio):
+            h1, t1, sign = batch
             tx = time.time()
             _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
-                                self.h: h1, self.t: t1, self.sign: [1.0]})
+                                self.h: h1, self.t: t1, self.sign: sign})
             tot_time += time.time() - tx
             sum_loss += cur_loss
-            for i in range(self.negative_ratio):
-                t1 = self.neg_batch(h1)
-                tx = time.time()
-                _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
-                                self.h: h1, self.t: t1, self.sign: [0.0]})
-                tot_time += time.time() - tx
-                sum_loss += cur_loss
             batch_id += 1
         end = time.time()
 
         print('epoch {}: sum of loss:{!s}; time cost: {!s}/{!s}, per_batch_cost: {!s}'.
               format(self.cur_epoch, sum_loss / batch_id, tot_time, end-start, tot_time/batch_id))
-
-    """
-    mix negative batch and positive batches
-    """
-    # def train_one_epoch(self):
-    #     sum_loss = 0.0
-    #
-    #     batch_id = 0
-    #
-    #     tot_time = 0.0
-    #     start = time.time()
-    #     for batch in self.model_v.sample_batch(self.batch_size, self.negative_ratio):
-    #         h1, t1, sign = batch
-    #         tx = time.time()
-    #         _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
-    #                             self.h: h1, self.t: t1, self.sign: sign})
-    #         tot_time += time.time() - tx
-    #         sum_loss += cur_loss
-    #         batch_id += 1
-    #     end = time.time()
-    #
-    #     print('epoch {}: sum of loss:{!s}; time cost: {!s}/{!s}, per_batch_cost: {!s}'.
-    #           format(self.cur_epoch, sum_loss / batch_id, tot_time, end-start, tot_time/batch_id))
 
     # def train_one_epoch1(self):
     #     sum_loss = 0.0

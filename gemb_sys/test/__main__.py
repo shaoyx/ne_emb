@@ -1,10 +1,8 @@
 from __future__ import print_function
-import numpy as np
 import random
-import time
+from collections import defaultdict
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from sklearn.linear_model import LogisticRegression
 from classify import Classifier, read_node_label\
 
 from link import *
@@ -112,30 +110,46 @@ def main(args):
         Y = list(labels.values())
         print("Node classification")
         clf_ratio_list = args.clf_ratio.strip().split(',')
-        result_list = []
-        for clf_ratio in clf_ratio_list:
-            result = {}
+        result_list = {}
+        train_ratio = np.asarray(range(1, 10)) * .1
+        for clf_ratio in train_ratio:  # clf_ratio_list:
+            result_per_test = []
             for ti in range(args.exp_times):
                 clf = Classifier(vectors=node_embeddings, clf=LogisticRegression())
                 myresult = clf.split_train_evaluate(X, Y, float(clf_ratio))
-                for nam in myresult.keys():
-                    if ti == 0:
-                        result[nam] = myresult[nam]
-                    else:
-                        result[nam] += myresult[nam]
-            for nam in result.keys():
-                print("clf_ratio = {}, {}: {}".format(clf_ratio, nam, result[nam]/args.exp_times))
-            result_list += [result]
-        exp_num = len(result_list)
-        for i in range(exp_num):
-            print("{}\t".format(clf_ratio_list[i]), end='')
-        print("\nmicro")
-        for i in range(exp_num):
-            print("{}\t".format(result_list[i]["micro"]/args.exp_times), end='')
-        print("\nmacro")
-        for i in range(exp_num):
-            print("{}\t".format(result_list[i]["macro"]/args.exp_times), end='')
-        print("\n")
+                result_per_test.append(myresult)
+            result_list[clf_ratio] = result_per_test
+
+        print('-------------------')
+        for clf_ratio in train_ratio:
+            print('Train percent:', clf_ratio)
+            results = result_list[clf_ratio]
+            for index, result in enumerate(results):
+                print('Shuffle #%d:   ' % (index + 1), result)
+
+            avg_score = defaultdict(float)
+            for score_dict in results:
+                for metric, score in score_dict.items():
+                    avg_score[metric] += score
+            for metric in avg_score:
+                avg_score[metric] /= len(results)
+            print('Average score:', dict(avg_score))
+            print('-------------------')
+        # print("\nmicro")
+        # for i in range(exp_num):
+        #     print("{}\t".format(result_list[i]["micro"]/args.exp_times), end='')
+        # print("\nmacro")
+        # for i in range(exp_num):
+        #     print("{}\t".format(result_list[i]["macro"]/args.exp_times), end='')
+        # print("\n")
+        #     for nam in myresult.keys():
+        #         if ti == 0:
+        #             result[nam] = myresult[nam]
+        #         else:
+        #             result[nam] += myresult[nam]
+        # for nam in result.keys():
+        #     print("clf_ratio = {}, {}: {}".format(clf_ratio, nam, result[nam]/args.exp_times))
+        # result_list += [result]
 
 if __name__ == "__main__":
     random.seed()

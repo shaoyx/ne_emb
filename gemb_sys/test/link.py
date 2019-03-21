@@ -79,7 +79,7 @@ def link_prediction(dataset, embeddings):
 
     # Learn embeddings with current parameter values
     vectors = embeddings
-    for x in vectors:
+    for x in vectors.values():
         dims = len(x)
         break;
     '''

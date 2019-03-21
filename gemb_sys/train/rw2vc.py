@@ -1,10 +1,10 @@
 from __future__ import print_function
 import random
-import math
 import numpy as np
 import time
 
 from vctrainer import vctrainer
+
 
 class rw2vc(vctrainer):
     def __init__(self,
@@ -37,8 +37,8 @@ class rw2vc(vctrainer):
             tot_time += time.time() - tx
             sum_loss += cur_loss
             batch_id += 1
-            # if batch_id % 10 == 0:
-            #    print("per batch costs {}".format(tot_time/batch_id))
+            if batch_id % 100 == 0:
+               print("per batch costs {}".format(tot_time/batch_id))
         end = time.time()
 
         print('epoch {}: sum of loss:{!s}; time cost: {!s}/{!s}, per_batch_cost: {!s}'.
@@ -46,7 +46,7 @@ class rw2vc(vctrainer):
 
     def batch_iter(self):
         h0, t0, sign0 = self.batches
-        shuffle_indices = np.arange(len(h0)) #np.random.permutation(np.arange(len(h0)))
+        shuffle_indices = np.random.permutation(np.arange(len(h0)))
 
         table_size = len(shuffle_indices)
         i = 0

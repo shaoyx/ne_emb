@@ -122,8 +122,8 @@ class Graph(object):
         fin.close()
 
     def bfs(self, st, edges):
-        q = {st}
-        cnt = 1
+        # q = {st}
+        # cnt = 1
         nbrs = {}
         look_up = self.look_up_dict
         for node in self.G.nodes():
@@ -135,23 +135,28 @@ class Graph(object):
             nbrs[node] = list(nbrs[node])
             random.shuffle(nbrs[node])
         visited = np.zeros(self.node_size, dtype=np.uint32)
-        visited[look_up[st]] = 1
-        while cnt > 0:
-            fst = q.pop()
-            cnt -= 1
-            for nxt in nbrs[fst]:
-                x = look_up[nxt]
-                if visited[x] == 0:
-                    if (fst, nxt) in edges:
-                        edges.remove((fst, nxt))
-                    else:
-                        edges.remove((nxt, fst))
-                    if not self.directed:
-                        edges.remove((nxt, fst))
-                    visited[x] = 1
-                    q.add(nxt)
-                    cnt += 1
-
+        # visited[look_up[st]] = 1
+        for st in self.G.nodes():
+            if visited[look_up[st]] == 1:
+               continue
+            q = {st}
+            cnt = 1
+            visited[look_up[st]] = 1
+            while cnt > 0:
+                fst = q.pop()
+                cnt -= 1
+                for nxt in nbrs[fst]:
+                    x = look_up[nxt]
+                    if visited[x] == 0:
+                        if (fst, nxt) in edges:
+                            edges.remove((fst, nxt))
+                        else:
+                            edges.remove((nxt, fst))
+                        if not self.directed:
+                            edges.remove((nxt, fst))
+                        visited[x] = 1
+                        q.add(nxt)
+                        cnt += 1
 
     def generate_pos_neg_links(self):
         """
@@ -164,7 +169,6 @@ class Graph(object):
         # Select n edges at random (positive samples)
         look_up = self.look_up_dict
         nodes = list(self.G.nodes())
-        n_nodes = self.node_size
         edges = set(self.G.edges())
         n_edges = len(edges)
         if not self.directed:

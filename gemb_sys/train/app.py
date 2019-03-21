@@ -1,92 +1,135 @@
 from __future__ import print_function
-import random
+from vcgenerator import *
 
-class APP(object):
+"""
+jump_factor: prob to stop
+Paper: Scalable Graph Embedding for Asymmetric Proximity
+"""
 
-    # jump_factor: prob to stop
-    def __init__(self, graph, jump_factor=0.15, sample=50, step=10):
+
+class APP(VCGenerator):
+
+    def __init__(self, graph, stop_factor=0.15, sample=200, step=10):
+        super(APP, self).__init__()
         self.g = graph
-        self.jump_factor = jump_factor
-        self.sample = sample
+        self.nodes = graph.G.nodes()
+        self.stop_factor = stop_factor
+        self.sample_per_node = sample
         self.step = step
-        self.neighbors = None
-        self.degrees = None
 
-    def sample_batch(self, batch_size):
-        random.seed()
-        try:
-            nodes = self.nodes
-        except:
-            self.nodes = list(self.g.G.nodes())
-            nodes = self.nodes
+        self.neighbors = {}
+        self.degrees = {}
+        for root in self.nodes():
+            self.neighbors[root] = list(graph.G.neighbors(root))
+            self.degrees[root] = len(self.neighbors[root])
+
+    def generate_batch(self, batch_size):
+        shuffle_nodes = list(self.nodes)
         look_up = self.g.look_up_dict
-        random.shuffle(nodes)
+        random.shuffle(shuffle_nodes)
         h = []
         cnt = 0
-        for root in nodes:
-            for i in range(self.sample):
+        for i in range(self.sample_per_node):
+            for root in shuffle_nodes:
                 cnt += 1
                 h += [look_up[root]]
                 if cnt >= batch_size:
-                    t = self.sample_c(h)
+                    t = self.sample_context(h)
                     yield h, t
                     cnt = 0
                     h = []
         if len(h) > 0:
-            t = self.sample_c(h)
+            t = self.sample_context(h)
             yield h, t
 
-    def sample_v(self, batch_size):
-        random.seed()
-        try:
-            nodes = self.nodes
-        except:
-            self.nodes = list(self.g.G.nodes())
-            nodes = self.nodes
-        look_up = self.g.look_up_dict
-        random.shuffle(nodes)
-        h = []
-        cnt = 0
-        for root in nodes:
-            for i in range(self.sample):
-                cnt += 1
-                h += [look_up[root]]
-                if cnt >= batch_size:
-                    yield h
-                    cnt = 0
-                    h = []
-        if len(h) > 0:
-            yield h
-
-    def sample_c(self, h):
-        G = self.g.G
-        if self.neighbors is None:
-            self.neighbors = {}
-            self.degrees = {}
-            for root in G.nodes():
-                self.neighbors[root] = list(G.neighbors(root))
-                self.degrees[root] = len(self.neighbors[root])
-        neighbors = self.neighbors
-        degrees = self.degrees
-        jump_factor = self.jump_factor
-        step = self.step
+    def sample_context(self, h):
         look_up = self.g.look_up_dict
         look_back = self.g.look_back_list
         t = []
         for i in h:
             root = look_back[i]
             iid = root
-            s = step
+            s = self.step
             while s > 0:
                 s -= 1
-                jump = random.random()
-                if jump < jump_factor:
+                stop = random.random()
+                if stop < self.stop_factor:
                     break
-                if degrees[iid] == 0:
+                if self.degrees[iid] == 0:
                     break
-                iid = random.choice(neighbors[iid])
+                iid = random.choice(self.neighbors[iid])
             t += [look_up[iid]]
         return t
+
+    # def sample_v(self, batch_size):
+    #     random.seed()
+    #     try:
+    #         nodes = self.nodes
+    #     except:
+    #         self.nodes = list(self.g.G.nodes())
+    #         nodes = self.nodes
+    #     look_up = self.g.look_up_dict
+    #     random.shuffle(nodes)
+    #     h = []
+    #     cnt = 0
+    #     for root in nodes:
+    #         for i in range(self.sample):
+    #             cnt += 1
+    #             h += [look_up[root]]
+    #             if cnt >= batch_size:
+    #                 yield h
+    #                 cnt = 0
+    #                 h = []
+    #     if len(h) > 0:
+    #         yield h
+
+    # def generate_a_batch(self, batch_size):
+    #     random.seed()
+    #     try:
+    #         nodes = self.nodes
+    #     except:
+    #         self.nodes = list(self.g.G.nodes())
+    #         nodes = self.nodes
+    #     look_up = self.g.look_up_dict
+    #     random.shuffle(nodes)
+    #     hx = []
+    #     cnt = 0
+    #     for root in nodes:
+    #         for i in range(self.sample):
+    #             cnt += 1
+    #             hx += [look_up[root]]
+    #             if cnt >= batch_size:
+    #                 tx = self.sample_c(hx)
+    #                 h = []
+    #                 t = []
+    #                 sign = []
+    #                 for idx in range(len(hx)):
+    #                     h.append(hx[idx])
+    #                     t.append(tx[idx])
+    #                     sign.append(1.0)
+    #                     for negId in range(negative_ratio):
+    #                         h.append(hx[idx])
+    #                         t.append(random.randint(0, self.g.G.number_of_nodes() - 1))
+    #                         sign.append(0)
+    #                 yield h, t, sign
+    #                 cnt = 0
+    #                 hx = []
+    #     if len(hx) > 0:
+    #         tx = self.sample_c(hx)
+    #         h = []
+    #         t = []
+    #         sign = []
+    #         for idx in range(len(hx)):
+    #             h.append(hx[idx])
+    #             t.append(tx[idx])
+    #             sign.append(1.0)
+    #             for negId in range(negative_ratio):
+    #                 h.append(hx[idx])
+    #                 t.append(random.randint(0, self.g.G.number_of_nodes() - 1))
+    #                 sign.append(0)
+    #         yield h, t, sign
+
+
     '''
     def batch_iter(self):
         random.seed()

@@ -36,13 +36,13 @@ class Classifier(object):
         top_k_list = [len(l) for l in Y]
         Y_ = self.predict(X, top_k_list)
         Y = self.binarizer.transform(Y)
-        averages = ["micro", "macro", "samples", "weighted"]
+        averages = ["micro", "macro"] #, "samples", "weighted"]
         results = {}
         for average in averages:
             results[average] = f1_score(Y, Y_, average=average)
         # print('Results, using embeddings of dimensionality', len(self.embeddings[X[0]]))
         # print('-------------------')
-        print(results)
+        # print(results)
         return results
         # print('-------------------')
 
@@ -64,7 +64,7 @@ class Classifier(object):
 
         self.train(X_train, Y_train, Y)
         numpy.random.set_state(state)
-        print("###########")
+        # print("###########")
         return self.evaluate(X_test, Y_test)
 
 
