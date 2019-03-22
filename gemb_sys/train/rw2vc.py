@@ -24,7 +24,7 @@ class rw2vc(object):
         start = time.time()
         self.window = window
         self.walks = self.load_random_walks(rw_file)
-        print("preprocessing time: {!s} for total pairs {}".format(time.time()-start, len(self.batches[0])))
+        print("preprocessing time: {!s} for total walks {}".format(time.time()-start, len(self.walks)))
 
         self.sess = tf.Session()
         cur_seed = random.getrandbits(32)
@@ -108,18 +108,20 @@ class rw2vc(object):
         start = time.time()
         for batch in self.generate_batch():
             h1, t1 = batch
+            sign = [1.0 for _ in range(len(h1))]
+            hx = [x for x in h1]
+            for i in range(self.negative_ratio):  # The training order matters!!!!
+                t_neg = self.neg_batch(h1)
+                for idx in range(len(h1)):
+                    t1.append(t_neg[idx])
+                    hx.append(h1[idx])
+                    sign.append(0.0)
+
             tx = time.time()
             _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
-                self.h: h1, self.t: t1, self.sign: [1.0]})
+                self.h: hx, self.t: t1, self.sign: sign})
             tot_time += time.time() - tx
             sum_loss += cur_loss
-            for i in range(self.negative_ratio):
-                t1 = self.neg_batch(h1)
-                tx = time.time()
-                _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
-                    self.h: h1, self.t: t1, self.sign: [0.0]})
-                tot_time += time.time() - tx
-                sum_loss += cur_loss
             batch_id += 1
         end = time.time()
 

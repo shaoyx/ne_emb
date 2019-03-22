@@ -19,6 +19,7 @@ class vctrainer(object):
         self.learning_rate = learning_rate
         self.negative_ratio = negative_ratio
         self.emb_file = emb_file
+        self.cur_epoch = 0
 
         self.sess = tf.Session()
         cur_seed = random.getrandbits(32)
@@ -30,7 +31,7 @@ class vctrainer(object):
 
         self.sess.run(tf.global_variables_initializer())
         print("Start training.")
-        self.cur_epoch = 0
+
         for i in range(epoch):
             self.train_one_epoch()
             self.cur_epoch += 1
@@ -52,6 +53,7 @@ class vctrainer(object):
         self.h = tf.placeholder(tf.int32, [None])
         self.t = tf.placeholder(tf.int32, [None])
         self.sign = tf.placeholder(tf.float32, [None])
+        # self.step = tf.placeholder(tf.float32, shape=())
 
         cur_seed = random.getrandbits(32)
         if emb_model == 'asym':
@@ -76,6 +78,13 @@ class vctrainer(object):
         logits = tf.reduce_sum(tf.multiply(self.h_e, self.t_e), axis=1)
         self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=self.sign))
         optimizer = tf.train.AdamOptimizer(self.learning_rate)
+        # lr = max(0.0001, 100/pow(10, self.cur_epoch-1))
+        # lr = tf.maximum(0.0001, 100/pow(10.0, self.step-1))
+        # print(lr)
+        # lr = 1000
+        # optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01) #need large learning rate and lr decay schedule
+        # self.grads_and_vars = optimizer.compute_gradients(self.loss)
+        # self.train_op = optimizer.apply_gradients(self.grads_and_vars)
         self.train_op = optimizer.minimize(self.loss)
 
     """
@@ -88,19 +97,57 @@ class vctrainer(object):
         start = time.time()
         for batch in self.model_v.generate_batch(self.batch_size):
             h1, t1 = batch
+            sign = [1.0 for _ in range(len(h1))]
+            hx = [x for x in h1]
+            for i in range(self.negative_ratio):  # The training order matters!!!!
+                t_neg = self.neg_batch(h1)
+                for idx in range(len(h1)):
+                    t1.append(t_neg[idx])
+                    hx.append(h1[idx])
+                    sign.append(0.0)
+
             tx = time.time()
-            _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
-                                self.h: h1, self.t: t1, self.sign: [1.0]})
+            _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
+                            self.h: hx, self.t: t1, self.sign: sign})
             tot_time += time.time() - tx
             sum_loss += cur_loss
-            for i in range(self.negative_ratio):
-                t1 = self.neg_batch(h1)
-                tx = time.time()
-                _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
-                                self.h: h1, self.t: t1, self.sign: [0.0]})
-                tot_time += time.time() - tx
-                sum_loss += cur_loss
             batch_id += 1
+
+            # tx = time.time()
+            # _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
+                                # self.h: h1, self.t: t1, self.sign: [1.0]})
+            # _, cur_loss, grads = self.sess.run([self.train_op, self.loss, self.grads_and_vars], feed_dict={
+            #     self.h: h1, self.t: t1, self.sign: [1.0]})
+            # for (g,v) in grads:
+            #     print(g)
+            # print("################")
+            # tot_time += time.time() - tx
+            # sum_loss += cur_loss
+            # for i in range(self.negative_ratio):
+            #     t1 = self.neg_batch(h1)
+            #     tx = time.time()
+            #     _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
+            #                     self.h: h1, self.t: t1, self.sign: [0.0]})
+            #     tot_time += time.time() - tx
+            #     sum_loss += cur_loss
+            # for gv in self.grads_and_vars:
+            #     print(str(self.sess.run(gv[0],  feed_dict={
+            #                     self.h: h1, self.t: t1, self.sign: [0.0]}))+"-"+gv[1].name)
+
+            # h1, t1 = batch
+            # tx = time.time()
+            # _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict = {
+            #                     self.h: h1, self.t: t1, self.sign: [1.0]})
+            # tot_time += time.time() - tx
+            # sum_loss += cur_loss
+            # for i in range(self.negative_ratio):
+            #     t1 = self.neg_batch(h1)
+            #     tx = time.time()
+            #     _, cur_loss = self.sess.run([self.train_op, self.loss], feed_dict={
+            #                     self.h: h1, self.t: t1, self.sign: [0.0]})
+            #     tot_time += time.time() - tx
+            #     sum_loss += cur_loss
+            # batch_id += 1
         end = time.time()
 
         print('epoch {}: sum of loss:{!s}; time cost: {!s}/{!s}, per_batch_cost: {!s}'.
