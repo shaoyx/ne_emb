@@ -7,11 +7,10 @@ import time
 class vctrainer(object):
     def __init__(self,
                  graph,
-                 vsampler, csampler, emb_model, emb_file,
+                 vcsampler, emb_model, emb_file,
                  rep_size=128, epoch=10, batch_size=1000, learning_rate=0.001, negative_ratio=5):
         self.g = graph
-        self.model_v = vsampler
-        self.model_c = csampler
+        self.vcmodel = vcsampler
         self.emb_model = emb_model #sym (first), asym (second)
         self.node_size = graph.G.number_of_nodes()
         self.rep_size = rep_size
@@ -95,7 +94,7 @@ class vctrainer(object):
         batch_id = 0
         tot_time = 0.0
         start = time.time()
-        for batch in self.model_v.generate_batch(self.batch_size):
+        for batch in self.vcmodel.generate_batch(self.batch_size):
             h1, t1 = batch
             sign = [1.0 for _ in range(len(h1))]
             hx = [x for x in h1]

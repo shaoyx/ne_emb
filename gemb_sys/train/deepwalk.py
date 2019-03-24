@@ -9,7 +9,7 @@ from vcgenerator import *
 
 
 class DeepWalk(VCGenerator):
-    def __init__(self, graph, fac=50, window=10, degree_bound=0, degree_power=1.0):
+    def __init__(self, graph, batch_size=1000, fac=50, window=10, degree_bound=0, degree_power=1.0):
         super(DeepWalk, self).__init__()
         self.g = graph
         self.nodes = graph.G.nodes()
@@ -24,7 +24,7 @@ class DeepWalk(VCGenerator):
         self.degree_power = degree_power
 
         self.sampling_table = None
-        self.build_node_tables()
+        self._pairs_per_epoch = self.build_node_tables(batch_size)
 
         # variable stores temporal information of random walks
         self.it = {}
@@ -38,8 +38,11 @@ class DeepWalk(VCGenerator):
             self.neighbors[root] = list(self.g.G.neighbors(root))
             self.degrees[root] = len(self.neighbors[root])
 
-    def build_node_tables(self):
-        table_size = self.fac * self.node_size
+    def pair_per_epoch(self):
+        return self._pairs_per_epoch
+
+    def build_node_tables(self, batch_size):
+        table_size = int((self.fac * self.node_size + batch_size - 1)/batch_size) * batch_size
 
         print("Pre-procesing for non-uniform negative sampling!")
         node_degree = np.zeros(self.node_size)
@@ -68,6 +71,7 @@ class DeepWalk(VCGenerator):
             while i < table_size and float(i) / table_size < p:
                 self.sampling_table[i] = j
                 i += 1
+        return table_size
 
     def generate_batch(self, batch_size):
         table_size = len(self.sampling_table)

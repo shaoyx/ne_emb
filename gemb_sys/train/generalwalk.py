@@ -4,8 +4,8 @@ from deepwalk import *
 
 class GeneralWalk(DeepWalk):
     # fac*node_size is the size of v_sampling table (for each epoch)
-    def __init__(self, graph, fac=50, window=10, degree_bound=0, degree_power=1.0, alpha=0.15):
-        super(GeneralWalk, self).__init__(graph, fac=fac, window=window, degree_bound=degree_bound,
+    def __init__(self, graph, batch_size=1000, fac=50, window=10, degree_bound=0, degree_power=1.0, alpha=0.15):
+        super(GeneralWalk, self).__init__(graph, batch_size=batch_size, fac=fac, window=window, degree_bound=degree_bound,
                                           degree_power=degree_power)
         self.alpha = alpha
 

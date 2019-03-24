@@ -30,6 +30,11 @@ class Graph(object):
             self.node_size += 1
             self.G.nodes[node]['status'] = ''
 
+        # preprocess graph to compute statistics
+        self.degree_dist = [0 for _ in range(self.G.number_of_nodes())]
+        for root in self.G.nodes():
+            self.degree_dist[look_up[root]] = len(list(self.G.neighbors(root)))
+
     def read_g(self, g):
         self.G = g
         self.encode_node()
